@@ -1,13 +1,13 @@
-from firebase_functions import https_fn
+from firebase_functions import scheduler_fn
 from firebase_functions.options import set_global_options
 from firebase_admin import initialize_app
 
-set_global_options(region="africa-south1", max_instances=10)
+set_global_options(region="africa-south1", max_instances=1)
 
 
 initialize_app()
 
 
-@https_fn.on_request()
-def order_status_update_producer(req: https_fn.Request) -> https_fn.Response:
-    return https_fn.Response("Hello Order Status Update Producer!")
+@scheduler_fn.on_schedule(schedule="every 1 hours", max_instances=1)
+def order_status_update_producer(event: scheduler_fn.ScheduledEvent) -> None:
+    print(f"Producer triggered by cron: {event}")
