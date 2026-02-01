@@ -1,0 +1,38 @@
+{
+  "firestore": {
+    "database": "(default)",
+    "location": "africa-south1",
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "functions": [
+    {
+      "codebase": "consumer",
+      "source": "functions/consumer",
+      "runtime": "python313",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        ".venv",
+        "venv",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    },
+    {
+      "codebase": "producer",
+      "source": "functions/producer",
+      "runtime": "python313",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        ".venv",
+        "venv",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
+}
