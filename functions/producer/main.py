@@ -1,13 +1,126 @@
+import os
+import json
+from typing import Any
+import requests
+
+from datetime import datetime
+from dateutil.parser import parse
+
+from firebase_admin import initialize_app
 from firebase_functions import scheduler_fn
 from firebase_functions.options import set_global_options
-from firebase_admin import initialize_app
+
+from google.cloud import pubsub_v1, firestore_v1
 
 set_global_options(region="africa-south1", max_instances=1)
 
-
 initialize_app()
+
+LOGISTICS_API_BASE_URL = "http://localhost:8000"
+API_KEY = "PLACEHOLDER_API_KEY"
+PROJECT_ID = os.environ.get("GCLOUD_PROJECT", "yoco-logistics-intergration")
+TOPIC_ID = "erp-order-status-update-queue"
+
+
+def get_last_updated(state_ref: firestore_v1.DocumentReference) -> str:
+    last_updated = parse("2024-01-01T00:00:00Z")
+    try:
+        state_doc = state_ref.get()
+        return (
+            parse(state_doc.get("last_updated"))
+            if state_doc.exists
+            else last_updated
+        )
+    except Exception as e:
+        print(f"Error reading state: {e}")
+        return last_updated
+
+
+def generate_shipment_messages(
+    publisher: pubsub_v1.PublisherClient,
+    shipments: list[dict],
+    last_updated: datetime
+) -> tuple[list[Any], datetime]:
+    messages = []
+    topic = publisher.topic_path(PROJECT_ID, TOPIC_ID)
+    max_timestamp_seen = last_updated
+
+    for shipment in shipments:
+        shipment_id = shipment.get("id")
+        updated_at = parse(shipment.get("updated_at"))
+
+        if not shipment_id or not updated_at:
+            print(f"Skipping invalid shipment data: {shipment}")
+            continue
+
+        data = json.dumps(shipment).encode("utf-8")
+        message = publisher.publish(
+            topic,
+            data,
+            shipment_id=str(shipment_id),
+            updated_at=str(updated_at),
+        )
+        messages.append(message)
+
+        if updated_at > max_timestamp_seen:
+            max_timestamp_seen = updated_at
+
+    return messages, max_timestamp_seen
+
+
+def poll_shipment_updates_api(last_updated: datetime) -> list[dict]:
+    try:
+        response = requests.get(
+            f"{LOGISTICS_API_BASE_URL}/v1/shipments",
+            params={"last_updated": last_updated},
+            headers={
+                "Authorization": f"Bearer {API_KEY}",
+                "Content-Type": "application/json",
+            },
+            timeout=30,
+        )
+        response.raise_for_status()
+        shipments = response.json()
+        return shipments.get("data", [])
+    except requests.exceptions.RequestException as e:
+        print(f"API Request failed: {e}")
+        return []
 
 
 @scheduler_fn.on_schedule(schedule="every 1 hours", max_instances=1)
 def order_status_update_producer(event: scheduler_fn.ScheduledEvent) -> None:
+    """
+    Polls the Logistics API for shipment updates and publishes them to Pub/Sub.
+    """
     print(f"Producer triggered by cron: {event}")
+
+    db = firestore_v1.Client()
+    state_ref = db.collection("system-state").document("erp-order-status-sync")
+    last_updated = get_last_updated(state_ref)
+
+    print(f"Polling API for updates since: {last_updated}")
+    shipments = poll_shipment_updates_api(last_updated)
+    if not shipments:
+        print("No new shipments found.")
+        return
+
+    print(f"Found {len(shipments)} updates.")
+
+    publisher = pubsub_v1.PublisherClient()
+    messages, max_timestamp_seen = generate_shipment_messages(
+        publisher, shipments, last_updated
+    )
+
+    try:
+        for message in messages:
+            message.result()
+        print(f"Successfully published {len(messages)} messages.")
+    except Exception as e:
+        print(f"Error publishing to Pub/Sub: {e}")
+        return
+
+    if max_timestamp_seen > last_updated:
+        state_ref.set({"last_updated": max_timestamp_seen}, merge=True)
+        print(f"Checkpoint updated to: {max_timestamp_seen}")
+
+    print("Producer run completed.")
