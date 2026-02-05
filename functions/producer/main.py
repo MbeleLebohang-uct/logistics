@@ -80,7 +80,7 @@ def poll_shipment_updates_api(last_updated: datetime) -> list[dict]:
         return []
 
 
-@scheduler_fn.on_schedule(schedule="every 1 hours", max_instances=1)
+@scheduler_fn.on_schedule(schedule="every 5 minutes", max_instances=1)
 def order_status_update_producer(event: scheduler_fn.ScheduledEvent) -> None:
     """
     Polls the Logistics API for shipment updates and publishes them to Pub/Sub.
