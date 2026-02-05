@@ -60,21 +60,22 @@ def order_status_update_consumer(
         return
 
     shipment_id = shipment.get("id")
-    updated_at = parse(shipment.get("updated_at"))
+    order_id = shipment.get("order_id")
+    last_updated = parse(shipment.get("last_updated"))
 
     db = firestore_v1.Client()
-    event_key = f"{shipment_id}-{updated_at.microsecond}"
+    event_key = f"{shipment_id}-{last_updated.microsecond}"
     processed_ref = db.collection("order-status-updates").document(event_key)
 
     transaction = db.transaction()
-    if not acquire_lock(transaction, processed_ref, shipment_id, updated_at):
+    if not acquire_lock(transaction, processed_ref, shipment_id, last_updated):
         print(f"Event {event_key} already processed or in progress. Skipping.")
         return
 
-    print(f"Processing shipment {shipment_id} update {updated_at}")
+    print(f"Processing shipment {shipment_id} last_updated {last_updated}")
     try:
         response = requests.post(
-            f"{ERP_API_BASE_URL}/v1/order/{shipment_id}",
+            f"{ERP_API_BASE_URL}/api/v1/orders/{order_id}/shipment",
             json=shipment,
             headers={
                 "Authorization": f"Bearer {ERP_API_KEY}",

@@ -37,9 +37,7 @@ def get_last_updated(state_ref: firestore_v1.DocumentReference) -> str:
 
 
 def generate_shipment_messages(
-    publisher: pubsub_v1.PublisherClient,
-    shipments: list[dict],
-    last_updated: datetime
+    publisher: pubsub_v1.PublisherClient, shipments: list[dict], last_updated: datetime
 ) -> tuple[list[Any], datetime]:
     messages = []
     topic = publisher.topic_path(PROJECT_ID, TOPIC_ID)
@@ -54,12 +52,7 @@ def generate_shipment_messages(
             continue
 
         data = json.dumps(shipment).encode("utf-8")
-        message = publisher.publish(
-            topic,
-            data,
-            shipment_id=str(shipment_id),
-            updated_at=str(updated_at),
-        )
+        message = publisher.publish(topic, data, shipment_id=str(shipment_id), updated_at=str(updated_at),)
         messages.append(message)
 
         if updated_at > max_timestamp_seen:
@@ -71,8 +64,8 @@ def generate_shipment_messages(
 def poll_shipment_updates_api(last_updated: datetime) -> list[dict]:
     try:
         response = requests.get(
-            f"{LOGISTICS_API_BASE_URL}/v1/shipments",
-            params={"last_updated": last_updated},
+            f"{LOGISTICS_API_BASE_URL}/api/v1/shipments",
+            params={"last_updated": last_updated.isoformat()},
             headers={
                 "Authorization": f"Bearer {API_KEY}",
                 "Content-Type": "application/json",
@@ -107,9 +100,7 @@ def order_status_update_producer(event: scheduler_fn.ScheduledEvent) -> None:
     print(f"Found {len(shipments)} updates.")
 
     publisher = pubsub_v1.PublisherClient()
-    messages, max_timestamp_seen = generate_shipment_messages(
-        publisher, shipments, last_updated
-    )
+    messages, max_timestamp_seen = generate_shipment_messages(publisher, shipments, last_updated)
 
     try:
         for message in messages:
