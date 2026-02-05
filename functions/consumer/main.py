@@ -8,7 +8,7 @@ from firebase_functions.options import set_global_options
 from firebase_admin import initialize_app
 from google.cloud import firestore_v1
 
-set_global_options(region="africa-south1", max_instances=10)
+set_global_options(region="europe-west3", max_instances=10)
 
 initialize_app()
 
@@ -32,19 +32,23 @@ def acquire_lock(transaction, doc_ref, shipment_id, updated_at_raw):
         if status != ProcessingStatus.FAILED.value:
             return False
 
-    transaction.set(doc_ref, {
-        "status": ProcessingStatus.PROCESSING.value,
-        "created_at": firestore_v1.SERVER_TIMESTAMP,
-        "shipment_id": shipment_id,
-        "updated_at": updated_at_raw,
-        "retry_count": firestore_v1.Increment(1)
-    }, merge=True)
+    transaction.set(
+        doc_ref,
+        {
+            "status": ProcessingStatus.PROCESSING.value,
+            "created_at": firestore_v1.SERVER_TIMESTAMP,
+            "shipment_id": shipment_id,
+            "updated_at": updated_at_raw,
+            "retry_count": firestore_v1.Increment(1),
+        },
+        merge=True,
+    )
     return True
 
 
-@pubsub_fn.on_message_published(topic="shipment-updates")
+@pubsub_fn.on_message_published(topic="erp-order-status-update-queue")
 def order_status_update_consumer(
-    event: pubsub_fn.CloudEvent[pubsub_fn.MessagePublishedData]
+    event: pubsub_fn.CloudEvent[pubsub_fn.MessagePublishedData],
 ) -> None:
     """
     Triggered by a Pub/Sub message. Pushes the update to the ERP system
@@ -79,23 +83,24 @@ def order_status_update_consumer(
             json=shipment,
             headers={
                 "Authorization": f"Bearer {ERP_API_KEY}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             },
-            timeout=30
+            timeout=30,
         )
         response.raise_for_status()
         print(f"Successfully pushed to ERP: {response.status_code}")
 
-        processed_ref.update({
-            "status": "COMPLETED",
-            "processed_at": firestore_v1.SERVER_TIMESTAMP
-        })
+        processed_ref.update(
+            {"status": "COMPLETED", "processed_at": firestore_v1.SERVER_TIMESTAMP}
+        )
 
     except Exception as e:
         print(f"Failed to push to ERP: {e}")
-        processed_ref.update({
-            "status": "FAILED",
-            "error": str(e),
-            "processed_at": firestore_v1.SERVER_TIMESTAMP
-        })
+        processed_ref.update(
+            {
+                "status": "FAILED",
+                "error": str(e),
+                "processed_at": firestore_v1.SERVER_TIMESTAMP,
+            }
+        )
         raise e

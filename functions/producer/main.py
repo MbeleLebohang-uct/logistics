@@ -11,8 +11,9 @@ from firebase_functions import scheduler_fn
 from firebase_functions.options import set_global_options
 
 from google.cloud import pubsub_v1, firestore_v1
+from google.api_core.exceptions import NotFound
 
-set_global_options(region="africa-south1", max_instances=1)
+set_global_options(region="europe-west3", max_instances=1)
 
 initialize_app()
 
@@ -27,13 +28,28 @@ def get_last_updated(state_ref: firestore_v1.DocumentReference) -> str:
     try:
         state_doc = state_ref.get()
         return (
-            parse(state_doc.get("last_updated"))
-            if state_doc.exists
-            else last_updated
+            parse(state_doc.get("last_updated")) if state_doc.exists else last_updated
         )
     except Exception as e:
         print(f"Error reading state: {e}")
         return last_updated
+
+
+def ensure_topic_exists(
+    publisher: pubsub_v1.PublisherClient, project_id: str, topic_id: str
+) -> None:
+    topic_path = publisher.topic_path(project_id, topic_id)
+    try:
+        publisher.get_topic(request={"topic": topic_path})
+    except NotFound:
+        print(f"Topic {topic_path} not found. Creating it.")
+        try:
+            publisher.create_topic(request={"name": topic_path})
+            print(f"Topic {topic_path} created.")
+        except Exception as e:
+            print(f"Error creating topic: {e}")
+    except Exception as e:
+        print(f"Error checking topic: {e}")
 
 
 def generate_shipment_messages(
@@ -52,7 +68,12 @@ def generate_shipment_messages(
             continue
 
         data = json.dumps(shipment).encode("utf-8")
-        message = publisher.publish(topic, data, shipment_id=str(shipment_id), updated_at=str(updated_at),)
+        message = publisher.publish(
+            topic,
+            data,
+            shipment_id=str(shipment_id),
+            updated_at=str(updated_at),
+        )
         messages.append(message)
 
         if updated_at > max_timestamp_seen:
@@ -80,7 +101,7 @@ def poll_shipment_updates_api(last_updated: datetime) -> list[dict]:
         return []
 
 
-@scheduler_fn.on_schedule(schedule="every 5 minutes", max_instances=1)
+@scheduler_fn.on_schedule(schedule="*/3 * * * *", max_instances=1)
 def order_status_update_producer(event: scheduler_fn.ScheduledEvent) -> None:
     """
     Polls the Logistics API for shipment updates and publishes them to Pub/Sub.
@@ -100,7 +121,10 @@ def order_status_update_producer(event: scheduler_fn.ScheduledEvent) -> None:
     print(f"Found {len(shipments)} updates.")
 
     publisher = pubsub_v1.PublisherClient()
-    messages, max_timestamp_seen = generate_shipment_messages(publisher, shipments, last_updated)
+    ensure_topic_exists(publisher, PROJECT_ID, TOPIC_ID)
+    messages, max_timestamp_seen = generate_shipment_messages(
+        publisher, shipments, last_updated
+    )
 
     try:
         for message in messages:

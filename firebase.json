@@ -1,7 +1,7 @@
 {
   "firestore": {
     "database": "(default)",
-    "location": "africa-south1",
+    "location": "europe-west3",
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
@@ -23,6 +23,34 @@
     {
       "codebase": "producer",
       "source": "functions/producer",
+      "runtime": "python313",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        ".venv",
+        "venv",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    },
+    {
+      "codebase": "mocks-erp",
+      "source": "functions/mocks/erp",
+      "runtime": "python313",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        ".venv",
+        "venv",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    },
+    {
+      "codebase": "mocks-external",
+      "source": "functions/mocks/external",
       "runtime": "python313",
       "disallowLegacyRuntimeConfig": true,
       "ignore": [
