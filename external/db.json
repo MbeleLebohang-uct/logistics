@@ -1,0 +1,84 @@
+{
+  "shipments": [
+    {
+      "id": "a08b6e1a-761d-4046-b182-f1cf05dfd6ca",
+      "reference": "SHIP-001",
+      "origin": "New York, NY",
+      "destination": "Los Angeles, CA",
+      "status": "transit",
+      "last_updated": "2026-01-15T10:00:00Z",
+      "updated_at": "2026-01-15T10:00:00Z",
+      "created_at": "2026-01-15T10:00:00Z"
+    },
+    {
+      "id": "7b5caff1-62ac-4e48-b4b2-6554a16aa4fb",
+      "reference": "SHIP-002",
+      "origin": "Chicago, IL",
+      "destination": "Miami, FL",
+      "status": "delivered",
+      "last_updated": "2026-01-10T14:30:00Z",
+      "updated_at": "2026-01-10T14:30:00Z",
+      "created_at": "2026-01-10T14:30:00Z"
+    },
+    {
+      "id": "dc373e65-7494-41ff-86eb-a5be601a5c5e",
+      "reference": "SHIP-003",
+      "origin": "Seattle, WA",
+      "destination": "Austin, TX",
+      "status": "pending",
+      "last_updated": "2026-02-01T09:15:00Z",
+      "updated_at": "2026-02-01T09:15:00Z",
+      "created_at": "2026-02-01T09:15:00Z"
+    },
+    {
+      "id": "0063591d-2421-484c-8bb2-e9eb7519937f",
+      "reference": "SHIP-004",
+      "origin": "San Francisco, CA",
+      "destination": "Boston, MA",
+      "status": "transit",
+      "last_updated": "2026-02-02T16:45:00Z",
+      "updated_at": "2026-02-02T16:45:00Z",
+      "created_at": "2026-02-02T16:45:00Z"
+    },
+    {
+      "id": "ab80bbd4-31e2-44c0-8d73-ea812fe57c88",
+      "reference": "SHIP-005",
+      "origin": "New York, NY",
+      "destination": "Los Angeles, CA",
+      "status": "transit",
+      "last_updated": "2026-02-03T12:30:00Z",
+      "updated_at": "2026-02-03T12:30:00Z",
+      "created_at": "2026-02-03T12:30:00Z"
+    },
+    {
+      "id": "635a9fa3-87f3-45f9-a785-de6f020f14b1",
+      "reference": "SHIP-006",
+      "origin": "Chicago, IL",
+      "destination": "Miami, FL",
+      "status": "delivered",
+      "last_updated": "2026-02-04T10:00:00Z",
+      "updated_at": "2026-02-04T10:00:00Z",
+      "created_at": "2026-02-04T10:00:00Z"
+    },
+    {
+      "id": "6de01782-e22e-4835-9160-4104dd8e815a",
+      "reference": "SHIP-007",
+      "origin": "Seattle, WA",
+      "destination": "Austin, TX",
+      "status": "pending",
+      "last_updated": "2026-02-05T09:15:00Z",
+      "updated_at": "2026-02-05T09:15:00Z",
+      "created_at": "2026-02-05T09:15:00Z"
+    },
+    {
+      "id": "92a692f2-41fd-4c4b-b090-6766db0cedb3",
+      "reference": "SHIP-008",
+      "origin": "San Francisco, CA",
+      "destination": "Boston, MA",
+      "status": "transit",
+      "last_updated": "2026-02-06T16:45:00Z",
+      "updated_at": "2026-02-06T16:45:00Z",
+      "created_at": "2026-02-06T16:45:00Z"
+    }
+  ]
+}
