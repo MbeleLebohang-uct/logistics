@@ -1,3 +1,4 @@
+import os
 from enum import Enum
 import json
 from dateutil.parser import parse
@@ -12,8 +13,9 @@ set_global_options(region="europe-west3", max_instances=10)
 
 initialize_app()
 
-ERP_API_BASE_URL = "http://localhost:9000"
-ERP_API_KEY = "PLACEHOLDER_API_KEY"
+API_KEY = "dummy-api-key"
+ERP_API_BASE_URL = os.environ.get("ERP_API_BASE_URL", "http://localhost:9000")
+HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
 
 
 class ProcessingStatus(Enum):
@@ -64,7 +66,6 @@ def order_status_update_consumer(
         return
 
     shipment_id = shipment.get("id")
-    order_id = shipment.get("order_id")
     last_updated = parse(shipment.get("last_updated"))
 
     db = firestore_v1.Client()
@@ -78,29 +79,14 @@ def order_status_update_consumer(
 
     print(f"Processing shipment {shipment_id} last_updated {last_updated}")
     try:
-        response = requests.post(
-            f"{ERP_API_BASE_URL}/api/v1/orders/{order_id}/shipment",
-            json=shipment,
-            headers={
-                "Authorization": f"Bearer {ERP_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            timeout=30,
-        )
+        response = requests.post(ERP_API_BASE_URL, json=shipment, headers=HEADERS, timeout=30)
         response.raise_for_status()
         print(f"Successfully pushed to ERP: {response.status_code}")
 
-        processed_ref.update(
-            {"status": "COMPLETED", "processed_at": firestore_v1.SERVER_TIMESTAMP}
-        )
-
+        processed_ref.update({"status": "COMPLETED", "processed_at": firestore_v1.SERVER_TIMESTAMP})
     except Exception as e:
         print(f"Failed to push to ERP: {e}")
         processed_ref.update(
-            {
-                "status": "FAILED",
-                "error": str(e),
-                "processed_at": firestore_v1.SERVER_TIMESTAMP,
-            }
+            {"status": ProcessingStatus.FAILED.value, "error": str(e), "processed_at": firestore_v1.SERVER_TIMESTAMP}
         )
         raise e

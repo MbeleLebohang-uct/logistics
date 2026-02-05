@@ -3,7 +3,7 @@ import json
 from typing import Any
 import requests
 
-from datetime import datetime
+from datetime import datetime, timezone
 from dateutil.parser import parse
 
 from firebase_admin import initialize_app
@@ -17,10 +17,11 @@ set_global_options(region="europe-west3", max_instances=1)
 
 initialize_app()
 
-LOGISTICS_API_BASE_URL = "http://localhost:8000"
-API_KEY = "PLACEHOLDER_API_KEY"
+API_KEY = "dummy-api-key"
+LOGISTICS_API_BASE_URL = os.environ.get("LOGISTICS_API_BASE_URL", "http://localhost:8000")
 PROJECT_ID = os.environ.get("GCLOUD_PROJECT", "yoco-logistics-intergration")
 TOPIC_ID = "erp-order-status-update-queue"
+HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
 
 
 def get_last_updated(state_ref: firestore_v1.DocumentReference) -> str:
@@ -61,38 +62,27 @@ def generate_shipment_messages(
 
     for shipment in shipments:
         shipment_id = shipment.get("id")
-        updated_at = parse(shipment.get("updated_at"))
+        last_updated = parse(shipment.get("last_updated"))
 
-        if not shipment_id or not updated_at:
+        if not shipment_id or not last_updated:
             print(f"Skipping invalid shipment data: {shipment}")
             continue
 
         data = json.dumps(shipment).encode("utf-8")
-        message = publisher.publish(
-            topic,
-            data,
-            shipment_id=str(shipment_id),
-            updated_at=str(updated_at),
-        )
+        updated_at = datetime.now(timezone.utc).isoformat()
+        message = publisher.publish(topic, data, shipment_id=shipment_id, updated_at=updated_at)
         messages.append(message)
 
-        if updated_at > max_timestamp_seen:
-            max_timestamp_seen = updated_at
+        if last_updated > max_timestamp_seen:
+            max_timestamp_seen = last_updated
 
     return messages, max_timestamp_seen
 
 
 def poll_shipment_updates_api(last_updated: datetime) -> list[dict]:
     try:
-        response = requests.get(
-            f"{LOGISTICS_API_BASE_URL}/api/v1/shipments",
-            params={"last_updated": last_updated.isoformat()},
-            headers={
-                "Authorization": f"Bearer {API_KEY}",
-                "Content-Type": "application/json",
-            },
-            timeout=30,
-        )
+        params = {"last_updated": last_updated.isoformat()}
+        response = requests.get(LOGISTICS_API_BASE_URL, params=params, headers=HEADERS, timeout=30)
         response.raise_for_status()
         shipments = response.json()
         return shipments.get("data", [])
@@ -119,12 +109,9 @@ def order_status_update_producer(event: scheduler_fn.ScheduledEvent) -> None:
         return
 
     print(f"Found {len(shipments)} updates.")
-
     publisher = pubsub_v1.PublisherClient()
     ensure_topic_exists(publisher, PROJECT_ID, TOPIC_ID)
-    messages, max_timestamp_seen = generate_shipment_messages(
-        publisher, shipments, last_updated
-    )
+    messages, max_timestamp_seen = generate_shipment_messages(publisher, shipments, last_updated)
 
     try:
         for message in messages:
