@@ -1,20 +1,22 @@
-import os
+from datetime import datetime
 from enum import Enum
 import json
-from dateutil.parser import parse
+from dateutil import parser
+from dateutil.tz import tzutc
 import requests
 
 from firebase_functions import pubsub_fn
 from firebase_functions.options import set_global_options
 from firebase_admin import initialize_app
 from google.cloud import firestore_v1
+from firebase_functions.params import StringParam
 
 set_global_options(region="europe-west3", max_instances=10)
 
 initialize_app()
 
 API_KEY = "dummy-api-key"
-ERP_API_BASE_URL = os.environ.get("ERP_API_BASE_URL", "http://localhost:9000")
+ERP_API_BASE_URL = StringParam("ERP_API_BASE_URL").value
 HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
 
 
@@ -22,6 +24,16 @@ class ProcessingStatus(Enum):
     PROCESSING = "PROCESSING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
+
+
+def parse_date(value) -> datetime:
+    if not isinstance(value, (str, datetime)):
+        raise TypeError('parse_date() first argument must be either type str or datetime')
+    if isinstance(value, str):
+        value = parser.parse(value)
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=tzutc())
+    return value
 
 
 @firestore_v1.transactional
@@ -66,7 +78,7 @@ def order_status_update_consumer(
         return
 
     shipment_id = shipment.get("id")
-    last_updated = parse(shipment.get("last_updated"))
+    last_updated = parse_date(shipment.get("last_updated"))
 
     db = firestore_v1.Client()
     event_key = f"{shipment_id}-{last_updated.microsecond}"

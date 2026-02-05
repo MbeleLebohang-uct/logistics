@@ -4,11 +4,13 @@ from typing import Any
 import requests
 
 from datetime import datetime, timezone
-from dateutil.parser import parse
+from dateutil import parser
+from dateutil.tz import tzutc
 
 from firebase_admin import initialize_app
 from firebase_functions import scheduler_fn
 from firebase_functions.options import set_global_options
+from firebase_functions.params import StringParam
 
 from google.cloud import pubsub_v1, firestore_v1
 from google.api_core.exceptions import NotFound
@@ -18,18 +20,28 @@ set_global_options(region="europe-west3", max_instances=1)
 initialize_app()
 
 API_KEY = "dummy-api-key"
-LOGISTICS_API_BASE_URL = os.environ.get("LOGISTICS_API_BASE_URL", "http://localhost:8000")
+LOGISTICS_API_BASE_URL = StringParam("LOGISTICS_API_BASE_URL").value
 PROJECT_ID = os.environ.get("GCLOUD_PROJECT", "yoco-logistics-intergration")
 TOPIC_ID = "erp-order-status-update-queue"
 HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
 
 
+def parse_date(value) -> datetime:
+    if not isinstance(value, (str, datetime)):
+        raise TypeError('parse_date() first argument must be either type str or datetime')
+    if isinstance(value, str):
+        value = parser.parse(value)
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=tzutc())
+    return value
+
+
 def get_last_updated(state_ref: firestore_v1.DocumentReference) -> str:
-    last_updated = parse("2024-01-01T00:00:00Z")
+    last_updated = parse_date("2026-02-06T10:00:00Z")
     try:
         state_doc = state_ref.get()
         return (
-            parse(state_doc.get("last_updated")) if state_doc.exists else last_updated
+            parse_date(state_doc.get("last_updated")) if state_doc.exists else last_updated
         )
     except Exception as e:
         print(f"Error reading state: {e}")
@@ -62,7 +74,7 @@ def generate_shipment_messages(
 
     for shipment in shipments:
         shipment_id = shipment.get("id")
-        last_updated = parse(shipment.get("last_updated"))
+        last_updated = parse_date(shipment.get("last_updated"))
 
         if not shipment_id or not last_updated:
             print(f"Skipping invalid shipment data: {shipment}")
@@ -70,7 +82,9 @@ def generate_shipment_messages(
 
         data = json.dumps(shipment).encode("utf-8")
         updated_at = datetime.now(timezone.utc).isoformat()
-        message = publisher.publish(topic, data, shipment_id=shipment_id, updated_at=updated_at)
+        message = publisher.publish(
+            topic, data, shipment_id=shipment_id, updated_at=updated_at
+        )
         messages.append(message)
 
         if last_updated > max_timestamp_seen:
@@ -82,7 +96,9 @@ def generate_shipment_messages(
 def poll_shipment_updates_api(last_updated: datetime) -> list[dict]:
     try:
         params = {"last_updated": last_updated.isoformat()}
-        response = requests.get(LOGISTICS_API_BASE_URL, params=params, headers=HEADERS, timeout=30)
+        response = requests.get(
+            LOGISTICS_API_BASE_URL, params=params, headers=HEADERS, timeout=30
+        )
         response.raise_for_status()
         shipments = response.json()
         return shipments.get("data", [])
@@ -111,7 +127,9 @@ def order_status_update_producer(event: scheduler_fn.ScheduledEvent) -> None:
     print(f"Found {len(shipments)} updates.")
     publisher = pubsub_v1.PublisherClient()
     ensure_topic_exists(publisher, PROJECT_ID, TOPIC_ID)
-    messages, max_timestamp_seen = generate_shipment_messages(publisher, shipments, last_updated)
+    messages, max_timestamp_seen = generate_shipment_messages(
+        publisher, shipments, last_updated
+    )
 
     try:
         for message in messages:
