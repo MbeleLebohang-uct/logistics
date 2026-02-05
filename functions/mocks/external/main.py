@@ -43,7 +43,7 @@ def get_shipments(request: https_fn.Request) -> https_fn.Response:
         db = firestore_v1.Client()
         docs = db.collection("shipments").stream()
 
-        shipments = [doc.to_dict() for doc in docs if parse_date(doc.to_dict().get("last_updated")) >= last_updated]
+        shipments = [doc.to_dict() for doc in docs if parse_date(doc.to_dict().get("last_updated")) > last_updated]
 
         return https_fn.Response(status=200, response=json.dumps({"data": shipments}), content_type="application/json")
     except Exception as e:
