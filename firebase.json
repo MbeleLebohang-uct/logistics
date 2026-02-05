@@ -7,6 +7,20 @@
   },
   "functions": [
     {
+      "codebase": "auth",
+      "source": "functions/auth",
+      "runtime": "python313",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        ".venv",
+        "venv",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    },
+    {
       "codebase": "consumer",
       "source": "functions/consumer",
       "runtime": "python313",
