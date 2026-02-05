@@ -10,9 +10,14 @@ DB_FILE = os.path.join(os.path.dirname(__file__), "db.json")
 
 def read_db():
     if not os.path.exists(DB_FILE):
-        return {"shipments": []}
+        return {"orders": []}
     with open(DB_FILE, "r") as f:
         return json.load(f)
+
+
+def write_db(data: dict):
+    with open(DB_FILE, "w") as f:
+        json.dump(data, f)
 
 
 def parse(value: Union[datetime, str]) -> datetime:
