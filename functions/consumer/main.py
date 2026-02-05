@@ -1,6 +1,5 @@
 from datetime import datetime
 from enum import Enum
-import json
 from dateutil import parser
 from dateutil.tz import tzutc
 import requests
@@ -34,6 +33,17 @@ def parse_date(value) -> datetime:
     if value.tzinfo is None:
         value = value.replace(tzinfo=tzutc())
     return value
+
+
+def get_event_message_payload(event: pubsub_fn.CloudEvent[pubsub_fn.MessagePublishedData]) -> dict | None:
+    try:
+        message = event.data.message.json
+        if message is None:
+            print("Message payload is None")
+        return message
+    except Exception as e:
+        print(f"Error decoding message: {e}")
+        return None
 
 
 @firestore_v1.transactional
@@ -70,11 +80,8 @@ def order_status_update_consumer(
     """
     print(f"Consumer triggered by Pub/Sub message: {event.id}")
 
-    try:
-        message = event.data.message.data.decode("utf-8")
-        shipment = json.loads(message)
-    except Exception as e:
-        print(f"Error decoding message: {e}")
+    shipment = get_event_message_payload(event)
+    if shipment is None:
         return
 
     shipment_id = shipment.get("id")
