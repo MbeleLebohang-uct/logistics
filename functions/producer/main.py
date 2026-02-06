@@ -21,9 +21,9 @@ initialize_app()
 
 API_KEY = "dummy-api-key"
 LOGISTICS_API_BASE_URL = StringParam("LOGISTICS_API_BASE_URL").value
+LOGISTICS_AUTH_API_URL = StringParam("LOGISTICS_AUTH_API_URL").value
 PROJECT_ID = os.environ.get("GCLOUD_PROJECT", "yoco-logistics-intergration")
 TOPIC_ID = "erp-order-status-update-queue"
-HEADERS = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
 
 
 def parse_date(value) -> datetime:
@@ -34,6 +34,12 @@ def parse_date(value) -> datetime:
     if value.tzinfo is None:
         value = value.replace(tzinfo=tzutc())
     return value
+
+
+def get_auth_token(auth_api_url: str) -> str:
+    response = requests.post(auth_api_url, headers={"Content-Type": "application/json"}, timeout=30)
+    response.raise_for_status()
+    return response.json().get("token")
 
 
 def get_last_updated(state_ref: firestore_v1.DocumentReference) -> str:
@@ -96,8 +102,15 @@ def generate_shipment_messages(
 def poll_shipment_updates_api(last_updated: datetime) -> list[dict]:
     try:
         params = {"last_updated": last_updated.isoformat()}
+        token = get_auth_token(LOGISTICS_AUTH_API_URL)
         response = requests.get(
-            LOGISTICS_API_BASE_URL, params=params, headers=HEADERS, timeout=30
+            LOGISTICS_API_BASE_URL,
+            params=params,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json",
+            },
+            timeout=30,
         )
         response.raise_for_status()
         shipments = response.json()
