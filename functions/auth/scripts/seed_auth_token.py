@@ -11,14 +11,7 @@ SAMPLE_AUTH_TOKEN = {
     "createdAt": 1770323175692,
     "expires_in": 3600,
     "token_type": "bearer",
-    "access_token": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2IiwieC5vcmciOiABCDJ9..656ABf59befbbf030f9cdd.\
-        omMyLhBDFtK948nmDu9ksHChYbPncTv0OAjQgxQUcFcsejRtyMpFLr0WHB2OZWn8GGDnnyIuHDE9XTR_S5x8VVpIkssWjfAVnmnjpgP\
-        -JAs2gfL13zA3rJLkmkmYKxsSaHmYmaFSE56jLQFoAwQST4WyGsasJw7ZjvrnV6szypMKqsVaSb2AwEv4R3ugmTuafI_\
-        7Mtn6ID83I3bvyle1wNVvCcwbAjt922LaeeHyI1P3u12eYG7JnWZS-n3tGgjSdJ7J3Yc60fNnD3jjdgd4gWvzFya0Cg3W\
-        rbg9rCTP3B5OKrwaNMxQLOnFpOeu4kN9y1IBzCiI5VlWNtTwSSl_oYT1XtKD9fJOSHGhqCGBqj8o5LuiFIp_sb312OMpsX\
-        6YltdAW0C-slZrTnUAlMoiW_s0EdY3up2B1ml8v8UO7qkkKkpliVmbfFzhPwCZrvIbLITfO7e9hnyxuIrFWwSCFq5K4itN1\
-        Odh8vIGFxgKHhBZAQYsSORDOh19XDQwhOdSAsFgIxruhPrJofp_JxlEr3ihjhXbQHKhAGvOXPPawNjYpWaS8Y1eZiSllqwgk\
-        uvk.gqWTaFP-WRF8Q_KGBIsngw",
+    "access_token": "eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2IiwieC5vcmciOiABCDJ9..656ABf59befbbf030f9cdd.omMyLhBDFtK948nmDu9ksHChYbPncTv0OAjQgxQUcFcsejRtyMpFLr0WHB2OZWn8GGDnnyIuHDE9XTR_S5x8VVpIkssWjfAVnmnjpgP-JAs2gfL13zA3rJLkmkmYKxsSaHmYmaFSE56jLQFoAwQST4WyGsasJw7ZjvrnV6szypMKqsVaSb2AwEv4R3ugmTuafI_7Mtn6ID83I3bvyle1wNVvCcwbAjt922LaeeHyI1P3u12eYG7JnWZS-n3tGgjSdJ7J3Yc60fNnD3jjdgd4gWvzFya0Cg3Wrbg9rCTP3B5OKrwaNMxQLOnFpOeu4kN9y1IBzCiI5VlWNtTwSSl_oYT1XtKD9fJOSHGhqCGBqj8o5LuiFIp_sb312OMpsX6YltdAW0C-slZrTnUAlMoiW_s0EdY3up2B1ml8v8UO7qkkKkpliVmbfFzhPwCZrvIbLITfO7e9hnyxuIrFWwSCFq5K4itN1Odh8vIGFxgKHhBZAQYsSORDOh19XDQwhOdSAsFgIxruhPrJofp_JxlEr3ihjhXbQHKhAGvOXPPawNjYpWaS8Y1eZiSllqwgkuvk.gqWTaFP-WRF8Q_KGBIsngw",  # noqa: E501
     "refresh_token": "RT1-206-H0-1770282300mebf8x2oafhqqigp08r9",
     "x_refresh_token_expires_in": 8643837,
 }
