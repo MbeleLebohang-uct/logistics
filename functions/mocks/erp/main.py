@@ -59,7 +59,7 @@ def update_shipment(request: https_fn.Request) -> https_fn.Response:
         order["shipment"] = shipment
         order["updated_at"] = datetime.now(timezone.utc).isoformat()
 
-        order_doc_ref.set(order, merge=True)
+        order_doc_ref.set(order)
 
         return https_fn.Response(
             status=200,
