@@ -38,8 +38,7 @@ def parse_date(value) -> datetime:
 def get_event_message_payload(event: pubsub_fn.CloudEvent[pubsub_fn.MessagePublishedData]) -> dict | None:
     try:
         message = event.data.message.json
-        if message is None:
-            print("Message payload is None")
+        print(f"Message: {message}")
         return message
     except Exception as e:
         print(f"Error decoding message: {e}")
@@ -88,7 +87,7 @@ def order_status_update_consumer(
     last_updated = parse_date(shipment.get("last_updated"))
 
     db = firestore_v1.Client()
-    event_key = f"{shipment_id}-{last_updated.microsecond}"
+    event_key = f"{shipment_id}-{round(last_updated.timestamp() * 1000)}"
     processed_ref = db.collection("order-status-updates").document(event_key)
 
     transaction = db.transaction()
