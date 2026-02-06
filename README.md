@@ -3,4 +3,4 @@
 
 ## Flow diagram
 
-[image](./mermaid-diagram-2026-02-06-125851.png)
+![image](./mermaid-diagram-2026-02-06-125851.png)
