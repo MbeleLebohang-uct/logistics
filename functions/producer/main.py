@@ -71,12 +71,9 @@ def ensure_topic_exists(
         print(f"Error checking topic: {e}")
 
 
-def generate_shipment_messages(
-    publisher: pubsub_v1.PublisherClient, shipments: list[dict], last_updated: datetime
-) -> tuple[list[Any], datetime]:
+def generate_shipment_messages(publisher: pubsub_v1.PublisherClient, shipments: list[dict]) -> list[Any]:
     messages = []
     topic = publisher.topic_path(PROJECT_ID, TOPIC_ID)
-    max_timestamp_seen = last_updated
 
     for shipment in shipments:
         shipment_id = shipment.get("id")
@@ -86,17 +83,15 @@ def generate_shipment_messages(
             print(f"Skipping invalid shipment data: {shipment}")
             continue
 
-        data = json.dumps(shipment).encode("utf-8")
-        updated_at = datetime.now(timezone.utc).isoformat()
         message = publisher.publish(
-            topic, data, shipment_id=shipment_id, updated_at=updated_at
+            topic,
+            json.dumps(shipment).encode("utf-8"),
+            shipment_id=shipment_id,
+            updated_at=datetime.now(timezone.utc).isoformat(),
         )
-        messages.append(message)
+        messages.append((message, last_updated))
 
-        if last_updated > max_timestamp_seen:
-            max_timestamp_seen = last_updated
-
-    return messages, max_timestamp_seen
+    return messages
 
 
 def poll_shipment_updates_api(last_updated: datetime) -> list[dict]:
@@ -113,8 +108,11 @@ def poll_shipment_updates_api(last_updated: datetime) -> list[dict]:
             timeout=30,
         )
         response.raise_for_status()
-        shipments = response.json()
-        return shipments.get("data", [])
+        shipments: list = response.json().get("data", [])
+
+        # Ideally the api should return these shipments sorted. But lets assume not
+        shipments.sort(key=lambda x: parse_date(x.get("last_updated")))
+        return shipments
     except requests.exceptions.RequestException as e:
         print(f"API Request failed: {e}")
         return []
@@ -140,17 +138,18 @@ def order_status_update_producer(event: scheduler_fn.ScheduledEvent) -> None:
     print(f"Found {len(shipments)} updates.")
     publisher = pubsub_v1.PublisherClient()
     ensure_topic_exists(publisher, PROJECT_ID, TOPIC_ID)
-    messages, max_timestamp_seen = generate_shipment_messages(
-        publisher, shipments, last_updated
-    )
+    messages = generate_shipment_messages(publisher, shipments)
 
+    max_timestamp_seen = last_updated
     try:
-        for message in messages:
+        for message, message_last_updated in messages:
             message.result()
+            if message_last_updated > max_timestamp_seen:
+                max_timestamp_seen = message_last_updated
         print(f"Successfully published {len(messages)} messages.")
     except Exception as e:
         print(f"Error publishing to Pub/Sub: {e}")
-        return
+        # Continue and allow updating of state.last_updated
 
     if max_timestamp_seen > last_updated:
         state_ref.set({"last_updated": max_timestamp_seen}, merge=True)
