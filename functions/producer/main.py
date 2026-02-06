@@ -107,7 +107,7 @@ def poll_shipment_updates_api(last_updated: datetime) -> list[dict]:
             LOGISTICS_API_BASE_URL,
             params=params,
             headers={
-                "Authorization": f"Bearer {token}",
+                "Authorization": f"{token['token_type'].capitalize} {token['access_token']}",
                 "Content-Type": "application/json",
             },
             timeout=30,

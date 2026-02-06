@@ -36,15 +36,20 @@ def get_auth_token(realm_id: str) -> dict:
     return doc.to_dict()
 
 
-def is_token_expired(token: dict) -> bool:
+def is_token_expired(token: dict, time_type: str = "expires_in") -> bool:
     """Checks if the auth token is expired."""
     epoch_now = round(time.time() * 1000)
-    expires_at = token.get("expires_in") + token.get("createdAt")
+    expires_at = token.get(time_type) + token.get("createdAt")
     return expires_at < epoch_now
 
 
 def refresh_auth_token(token: dict) -> dict:
     """Simulates the refresh of the auth token."""
+
+    refresh_token_expired = is_token_expired(token, "x_refresh_token_expires_in")
+    if refresh_token_expired:
+        print(f"Refresh token expired for realm {REALM_ID}")
+        return None
 
     token['createdAt'] = round(time.time() * 1000)
 
@@ -77,5 +82,11 @@ def authenticate(request: https_fn.Request) -> https_fn.Response:
     if is_token_expired(token):
         print(f"Token expired for realm {REALM_ID}")
         token = refresh_auth_token(token)
+        if token is None:
+            return https_fn.Response(
+                status=401,
+                response=json.dumps({"error": "Unauthorized"}),
+                content_type="application/json",
+            )
 
     return https_fn.Response(status=200, response=json.dumps({"token": token}), content_type="application/json")
