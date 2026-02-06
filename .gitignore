@@ -1,2 +1,15 @@
 *.env
 *.venv
+*.DS_Store
+*.log
+
+# Python bytecode
+__pycache__/
+
+# Python virtual environment
+venv/
+*.local
+
+# Firebase
+firebase-debug.log
+firebase-debug.*.log

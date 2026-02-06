@@ -1,11 +1,25 @@
 {
   "firestore": {
     "database": "(default)",
-    "location": "africa-south1",
+    "location": "europe-west3",
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"
   },
   "functions": [
+    {
+      "codebase": "auth",
+      "source": "functions/auth",
+      "runtime": "python313",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        ".venv",
+        "venv",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    },
     {
       "codebase": "consumer",
       "source": "functions/consumer",
@@ -33,6 +47,52 @@
         "firebase-debug.*.log",
         "*.local"
       ]
+    },
+    {
+      "codebase": "mocks-erp",
+      "source": "functions/mocks/erp",
+      "runtime": "python313",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        ".venv",
+        "venv",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    },
+    {
+      "codebase": "mocks-external",
+      "source": "functions/mocks/external",
+      "runtime": "python313",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        ".venv",
+        "venv",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
     }
-  ]
+  ],
+  "emulators": {
+    "functions": {
+      "port": 5001
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "pubsub": {
+      "port": 8085
+    },
+    "tasks": {
+      "port": 9499
+    },
+    "ui": {
+      "enabled": true
+    },
+    "singleProjectMode": true
+  }
 }
